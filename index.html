@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Master IPL App</title>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.js"></script>
+
+<style>
+body{
+margin:0;
+font-family:Arial,sans-serif;
+background:#020617;
+color:white;
+}
+header{
+background:linear-gradient(90deg,#ff512f,#dd2476);
+padding:15px;
+text-align:center;
+font-size:22px;
+font-weight:bold;
+}
+#search{
+width:90%;
+margin:10px auto;
+display:block;
+padding:10px;
+border:none;
+border-radius:10px;
+}
+#matches{
+padding:12px;
+display:grid;
+gap:12px;
+}
+.card{
+background:#111827;
+padding:14px;
+border-radius:16px;
+}
+.teams{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+.team-logo{
+width:38px;
+height:38px;
+border-radius:50%;
+}
+.live{
+background:red;
+padding:4px 10px;
+border-radius:20px;
+}
+.server{
+width:100%;
+margin-top:8px;
+padding:10px;
+border:none;
+border-radius:10px;
+background:#2563eb;
+color:white;
+}
+#playerBox{
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:black;
+z-index:9999;
+}
+video{
+width:100%;
+height:100%;
+}
+#quality{
+position:absolute;
+bottom:20px;
+left:20px;
+padding:8px;
+}
+.close{
+position:absolute;
+top:20px;
+right:20px;
+width:45px;
+height:45px;
+border:none;
+border-radius:50%;
+background:red;
+color:white;
+}
+nav{
+position:fixed;
+bottom:0;
+width:100%;
+background:#111827;
+display:flex;
+justify-content:space-around;
+padding:10px;
+}
+</style>
+</head>
+<body>
+
+<header>🏏 Master IPL Live</header>
+
+<input id="search" placeholder="Search match..." onkeyup="filterMatch()">
+
+<div id="matches"></div>
+
+<div id="playerBox">
+<button class="close" onclick="closePlayer()">✖</button>
+<video id="video" controls autoplay></video>
+<select id="quality"></select>
+</div>
+
+<nav>
+<span>🏠 Home</span>
+<span>📅 Schedule</span>
+<span>🏆 Points</span>
+</nav>
+
+<script>
+let allMatches=[];
+
+fetch('matches.json')
+.then(r=>r.json())
+.then(data=>{
+allMatches=data;
+renderMatches(data);
+});
+
+function renderMatches(matches){
+const box=document.getElementById("matches");
+box.innerHTML='';
+
+matches.forEach(match=>{
+if(new Date(match.endTime)<new Date()) return;
+
+let card=document.createElement("div");
+card.className="card";
+
+let html=`
+<div class="teams">
+<img src="${match.logo1}" class="team-logo">
+<span>${match.team1}</span>
+<span class="live">LIVE</span>
+<span>${match.team2}</span>
+<img src="${match.logo2}" class="team-logo">
+</div>
+`;
+
+match.servers.forEach(s=>{
+html+=`<button class="server" onclick="playVideo('${s.url}','${s.type}')">${s.name}</button>`;
+});
+
+card.innerHTML=html;
+box.appendChild(card);
+});
+}
+
+function filterMatch(){
+let v=document.getElementById("search").value.toLowerCase();
+renderMatches(allMatches.filter(m=>
+m.team1.toLowerCase().includes(v) || m.team2.toLowerCase().includes(v)
+));
+}
+
+let hls,player;
+
+function playVideo(url,type){
+document.getElementById("playerBox").style.display="block";
+const video=document.getElementById("video");
+
+if(type==="m3u8"){
+if(hls) hls.destroy();
+hls=new Hls();
+hls.loadSource(url);
+hls.attachMedia(video);
+
+hls.on(Hls.Events.MANIFEST_PARSED,function(e,data){
+let q=document.getElementById("quality");
+q.innerHTML='';
+data.levels.forEach((l,i)=>{
+q.innerHTML+=`<option value="${i}">${l.height}p</option>`;
+});
+q.onchange=function(){ hls.currentLevel=this.value; }
+});
+}
+
+if(type==="drm"){
+player=new shaka.Player(video);
+player.load(url);
+}
+}
+
+function closePlayer(){
+document.getElementById("playerBox").style.display="none";
+document.getElementById("video").pause();
+}
+</script>
+
+</body>
+</html>
