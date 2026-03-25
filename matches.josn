@@ -1,13 +1,1 @@
-[
-{
-"team1":"RCB",
-"team2":"CSK",
-"logo1":"rcb.png",
-"logo2":"csk.png",
-"endTime":"2026-03-30T23:59:00",
-"servers":[
-{"name":"Server 1","url":"https://9xjio.wiseplayout.com/9X_Jhakaas/master.m3u8","type":"m3u8"},
-{"name":"DRM Server","url":"YOUR_MPD_LINK","type":"drm"}
-]
-}
-]
+
